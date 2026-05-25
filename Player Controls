@@ -1,0 +1,106 @@
+using UnityEngine;
+
+/// <summary>
+/// Handles player movement using CharacterController.
+/// Attach to the Player GameObject alongside a CharacterController component.
+/// </summary>
+[RequireComponent(typeof(CharacterController))]
+public class PlayerController : MonoBehaviour
+{
+    [Header("Movement Settings")]
+    [Tooltip("How fast the player walks")]
+    public float moveSpeed = 6f;
+
+    [Tooltip("How fast the player sprints (hold Shift)")]
+    public float sprintSpeed = 10f;
+
+    [Tooltip("Gravity applied each frame")]
+    public float gravity = -20f;
+
+    [Header("Jump Settings")]
+    [Tooltip("Initial upward velocity when jumping")]
+    public float jumpHeight = 2f;
+
+    [Header("Ground Check")]
+    [Tooltip("Transform positioned at the player's feet")]
+    public Transform groundCheck;
+
+    [Tooltip("Radius of the sphere used to detect ground")]
+    public float groundDistance = 0.4f;
+
+    [Tooltip("Layer(s) considered as ground")]
+    public LayerMask groundMask;
+
+    // ── Private State ───────────────────────────────────────────────────────
+    private CharacterController _cc;
+    private Vector3 _velocity;         // carries vertical (gravity) velocity
+    private bool _isGrounded;
+    private bool _isDead;
+
+    // ── Unity Lifecycle ─────────────────────────────────────────────────────
+    private void Awake()
+    {
+        _cc = GetComponent<CharacterController>();
+    }
+
+    private void Update()
+    {
+        if (_isDead) return;
+
+        CheckGround();
+        HandleMovement();
+        HandleJump();
+        ApplyGravity();
+    }
+
+    // ── Private Methods ─────────────────────────────────────────────────────
+    private void CheckGround()
+    {
+        _isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+
+        // Reset downward velocity when grounded so gravity doesn't accumulate
+        if (_isGrounded && _velocity.y < 0f)
+            _velocity.y = -2f;          // small negative keeps CheckSphere reliable
+    }
+
+    private void HandleMovement()
+    {
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+
+        // Move relative to the player's facing direction
+        Vector3 move = transform.right * h + transform.forward * v;
+
+        float speed = Input.GetKey(KeyCode.LeftShift) ? sprintSpeed : moveSpeed;
+        _cc.Move(move * speed * Time.deltaTime);
+    }
+
+    private void HandleJump()
+    {
+        if (Input.GetButtonDown("Jump") && _isGrounded)
+        {
+            // v² = 2gh  →  v = √(2gh)
+            _velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+    }
+
+    private void ApplyGravity()
+    {
+        _velocity.y += gravity * Time.deltaTime;
+        _cc.Move(_velocity * Time.deltaTime);
+    }
+
+    // ── Public API ──────────────────────────────────────────────────────────
+    /// <summary>Freezes the player in place (called on win/lose).</summary>
+    public void Freeze()
+    {
+        _isDead = true;
+        _velocity = Vector3.zero;
+    }
+
+    /// <summary>Re-enables movement (if reusing the same instance).</summary>
+    public void Unfreeze()
+    {
+        _isDead = false;
+    }
+}
