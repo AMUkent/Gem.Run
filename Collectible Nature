@@ -1,0 +1,83 @@
+using UnityEngine;
+
+/// <summary>
+/// Collectible pickup. Spins in place, bobs up and down, and notifies
+/// GameManager when the player walks through it.
+///
+/// Setup:
+///   • Add a Collider (any shape) set to Is Trigger = true.
+///   • Tag the collectible GameObject "Collectible".
+///   • Optionally assign a collect particle prefab and audio clip.
+/// </summary>
+public class Collectible : MonoBehaviour
+{
+    [Header("Visual Behaviour")]
+    [Tooltip("Degrees per second to spin on Y axis")]
+    public float spinSpeed = 90f;
+
+    [Tooltip("How far the orb bobs up and down (metres)")]
+    public float bobAmplitude = 0.3f;
+
+    [Tooltip("Bobs per second")]
+    public float bobFrequency = 1.5f;
+
+    [Tooltip("Point value awarded when collected")]
+    public int pointValue = 10;
+
+    [Header("Feedback")]
+    [Tooltip("(Optional) Particle system prefab spawned on collect")]
+    public GameObject collectEffectPrefab;
+
+    [Tooltip("(Optional) Audio clip played on collect")]
+    public AudioClip collectSound;
+
+    // ── Private State ───────────────────────────────────────────────────────
+    private Vector3 _startPos;
+    private bool _collected;
+
+    // ── Unity Lifecycle ─────────────────────────────────────────────────────
+    private void Start()
+    {
+        _startPos = transform.position;
+    }
+
+    private void Update()
+    {
+        if (_collected) return;
+
+        // Spin
+        transform.Rotate(Vector3.up, spinSpeed * Time.deltaTime, Space.World);
+
+        // Bob
+        float newY = _startPos.y + Mathf.Sin(Time.time * bobFrequency * Mathf.PI * 2f) * bobAmplitude;
+        transform.position = new Vector3(transform.position.x, newY, transform.position.z);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (_collected) return;
+        if (!other.CompareTag("Player")) return;
+
+        Collect();
+    }
+
+    // ── Private Methods ─────────────────────────────────────────────────────
+    private void Collect()
+    {
+        _collected = true;
+
+        // Spawn effect
+        if (collectEffectPrefab != null)
+            Instantiate(collectEffectPrefab, transform.position, Quaternion.identity);
+
+        // Play sound at world position so it finishes even after object is gone
+        if (collectSound != null)
+            AudioSource.PlayClipAtPoint(collectSound, transform.position);
+
+        // Notify the game
+        GameManager.Instance.OnCollectiblePickedUp(pointValue);
+
+        // Destroy this object
+        Destroy(gameObject);
+    }
+}
