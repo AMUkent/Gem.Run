@@ -1,0 +1,86 @@
+using UnityEngine;
+
+/// <summary>
+/// Smooth third-person camera that follows and rotates around the player.
+/// Attach to the Main Camera. Drag the Player transform into the Inspector.
+/// </summary>
+public class CameraFollow : MonoBehaviour
+{
+    [Header("Target")]
+    [Tooltip("The transform to follow (Player)")]
+    public Transform target;
+
+    [Header("Positioning")]
+    [Tooltip("Offset from the target in local space")]
+    public Vector3 offset = new Vector3(0f, 3f, -6f);
+
+    [Header("Smoothing")]
+    [Tooltip("How quickly the camera catches up to the player")]
+    [Range(1f, 20f)]
+    public float followSpeed = 8f;
+
+    [Tooltip("How quickly the camera rotates to match the player's Y rotation")]
+    [Range(1f, 20f)]
+    public float rotationSpeed = 6f;
+
+    [Header("Mouse Look")]
+    [Tooltip("Enable mouse-driven orbit around the player")]
+    public bool enableMouseOrbit = true;
+
+    [Tooltip("Mouse sensitivity for orbiting")]
+    public float mouseSensitivity = 2f;
+
+    // ── Private State ───────────────────────────────────────────────────────
+    private float _yaw;       // current horizontal angle
+
+    // ── Unity Lifecycle ─────────────────────────────────────────────────────
+    private void Start()
+    {
+        if (target == null)
+        {
+            Debug.LogWarning("[CameraFollow] No target assigned! Please assign the Player transform.");
+            return;
+        }
+
+        _yaw = target.eulerAngles.y;
+
+        // Hide and lock the cursor while in play mode
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private void LateUpdate()
+    {
+        if (target == null) return;
+
+        if (enableMouseOrbit)
+        {
+            _yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
+
+            // Also rotate the player so movement stays camera-relative
+            target.rotation = Quaternion.Euler(0f, _yaw, 0f);
+        }
+        else
+        {
+            _yaw = Mathf.LerpAngle(_yaw, target.eulerAngles.y, rotationSpeed * Time.deltaTime);
+        }
+
+        // Desired position = target + rotated offset
+        Quaternion rot = Quaternion.Euler(0f, _yaw, 0f);
+        Vector3 desiredPos = target.position + rot * offset;
+
+        // Smooth position
+        transform.position = Vector3.Lerp(transform.position, desiredPos, followSpeed * Time.deltaTime);
+
+        // Always look at the target
+        transform.LookAt(target.position + Vector3.up * 1.5f);
+    }
+
+    // ── Public API ──────────────────────────────────────────────────────────
+    /// <summary>Unlocks the cursor (used by UI screens).</summary>
+    public static void UnlockCursor()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+}
