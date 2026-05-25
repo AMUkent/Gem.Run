@@ -1,0 +1,86 @@
+using UnityEngine;
+
+/// <summary>
+/// Spawns collectible prefabs at runtime across the play area.
+/// Place this on any empty GameObject in the Game scene.
+/// </summary>
+public class CollectibleSpawner : MonoBehaviour
+{
+    [Header("Prefab")]
+    [Tooltip("Drag the Collectible prefab here")]
+    public GameObject collectiblePrefab;
+
+    [Header("Spawn Area")]
+    [Tooltip("Total number of collectibles to place")]
+    public int spawnCount = 10;
+
+    [Tooltip("Half-width of the square spawn zone centred on this object")]
+    public float spawnRadius = 20f;
+
+    [Tooltip("Y position at which collectibles spawn")]
+    public float spawnHeight = 1f;
+
+    [Tooltip("Minimum distance between spawned collectibles")]
+    public float minSpacing = 2f;
+
+    // ── Unity Lifecycle ─────────────────────────────────────────────────────
+    private void Start()
+    {
+        if (collectiblePrefab == null)
+        {
+            Debug.LogError("[CollectibleSpawner] 'collectiblePrefab' is not assigned!", this);
+            return;
+        }
+
+        SpawnCollectibles();
+    }
+
+    // ── Private Methods ─────────────────────────────────────────────────────
+    private void SpawnCollectibles()
+    {
+        int attempts = 0;
+        int spawned  = 0;
+        var placed   = new System.Collections.Generic.List<Vector3>();
+
+        while (spawned < spawnCount && attempts < spawnCount * 10)
+        {
+            attempts++;
+
+            Vector3 candidate = new Vector3(
+                transform.position.x + Random.Range(-spawnRadius, spawnRadius),
+                spawnHeight,
+                transform.position.z + Random.Range(-spawnRadius, spawnRadius)
+            );
+
+            // Reject if too close to another collectible
+            bool tooClose = false;
+            foreach (Vector3 p in placed)
+            {
+                if (Vector3.Distance(candidate, p) < minSpacing)
+                {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose) continue;
+
+            Instantiate(collectiblePrefab, candidate, Quaternion.identity);
+            placed.Add(candidate);
+            spawned++;
+        }
+
+        if (spawned < spawnCount)
+            Debug.LogWarning($"[CollectibleSpawner] Only placed {spawned}/{spawnCount} collectibles (area may be too small or minSpacing too large).");
+    }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = new Color(0f, 1f, 0.5f, 0.2f);
+        Gizmos.DrawCube(
+            new Vector3(transform.position.x, spawnHeight, transform.position.z),
+            new Vector3(spawnRadius * 2f, 0.1f, spawnRadius * 2f)
+        );
+    }
+#endif
+}
