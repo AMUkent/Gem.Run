@@ -1,0 +1,51 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+/// <summary>
+/// Handles all menu screens: Main Menu, Win Screen, and Lose Screen.
+/// Attach ONE copy of this script per menu scene (or reuse across all three).
+///
+/// Scene Build Indices (set in File → Build Settings → Scenes In Build):
+///   0 = MainMenu
+///   1 = Game
+///   2 = Win
+///   3 = Lose
+/// </summary>
+public class MenuManager : MonoBehaviour
+{
+    // Build index constants — change these if your scene order differs
+    private const int SCENE_MAIN_MENU = 0;
+    private const int SCENE_GAME      = 1;
+
+    // ── Unity Lifecycle ─────────────────────────────────────────────────────
+    private void Start()
+    {
+        // Always ensure cursor is visible and free on any menu screen
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+    }
+
+    // ── Button Callbacks ────────────────────────────────────────────────────
+
+    /// <summary>Starts / restarts the game. Wire to Play / Restart buttons.</summary>
+    public void OnPlayButton()
+    {
+        SceneManager.LoadScene(SCENE_GAME);
+    }
+
+    /// <summary>Returns to the main menu. Wire to Main Menu buttons.</summary>
+    public void OnMainMenuButton()
+    {
+        SceneManager.LoadScene(SCENE_MAIN_MENU);
+    }
+
+    /// <summary>Quits the application (no effect inside the Unity Editor).</summary>
+    public void OnQuitButton()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+}
