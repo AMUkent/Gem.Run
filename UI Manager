@@ -1,0 +1,104 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+/// <summary>
+/// Manages all in-game HUD elements.
+/// Attach to an empty "UIManager" GameObject in the Game scene.
+///
+/// Requires TextMeshPro package (already included in Unity 2021+).
+/// </summary>
+public class UIManager : MonoBehaviour
+{
+    [Header("Score")]
+    [Tooltip("TextMeshPro label displaying the score")]
+    public TMP_Text scoreText;
+
+    [Header("Health")]
+    [Tooltip("Parent object containing heart/health icons (optional icon-based display)")]
+    public Transform healthIconParent;
+
+    [Tooltip("Image array representing each health point (drag Heart UI images here)")]
+    public Image[] healthIcons;
+
+    [Tooltip("Sprite shown when a health point is full")]
+    public Sprite heartFull;
+
+    [Tooltip("Sprite shown when a health point is empty")]
+    public Sprite heartEmpty;
+
+    [Header("Timer")]
+    [Tooltip("TextMeshPro label displaying time remaining")]
+    public TMP_Text timerText;
+
+    [Tooltip("Colour the timer turns when under 10 seconds")]
+    public Color urgentColor = Color.red;
+
+    [Tooltip("Normal timer colour")]
+    public Color normalColor = Color.white;
+
+    // ── Private State ───────────────────────────────────────────────────────
+    private Color _originalTimerColor;
+
+    // ── Unity Lifecycle ─────────────────────────────────────────────────────
+    private void Awake()
+    {
+        ValidateReferences();
+        if (timerText != null)
+            _originalTimerColor = timerText.color;
+    }
+
+    // ── Public API ──────────────────────────────────────────────────────────
+
+    /// <summary>Refreshes the on-screen score display.</summary>
+    public void UpdateScore(int score)
+    {
+        if (scoreText != null)
+            scoreText.text = $"Gems: {score}";
+    }
+
+    /// <summary>Refreshes heart icons to reflect current health.</summary>
+    public void UpdateHealth(int current, int max)
+    {
+        if (healthIcons == null || healthIcons.Length == 0) return;
+
+        for (int i = 0; i < healthIcons.Length; i++)
+        {
+            if (healthIcons[i] == null) continue;
+
+            bool filled = i < current;
+
+            // Use sprites if provided, otherwise toggle alpha
+            if (heartFull != null && heartEmpty != null)
+                healthIcons[i].sprite = filled ? heartFull : heartEmpty;
+            else
+                healthIcons[i].color = filled
+                    ? Color.white
+                    : new Color(1f, 1f, 1f, 0.25f);
+        }
+    }
+
+    /// <summary>Updates the countdown timer display.</summary>
+    public void UpdateTimer(float seconds)
+    {
+        if (timerText == null) return;
+
+        int m = Mathf.FloorToInt(seconds / 60f);
+        int s = Mathf.FloorToInt(seconds % 60f);
+        timerText.text = $"{m:00}:{s:00}";
+
+        // Urgent colour warning
+        timerText.color = seconds <= 10f ? urgentColor : normalColor;
+    }
+
+    // ── Private Methods ─────────────────────────────────────────────────────
+    private void ValidateReferences()
+    {
+        if (scoreText == null)
+            Debug.LogWarning("[UIManager] 'scoreText' is not assigned.", this);
+        if (timerText == null)
+            Debug.LogWarning("[UIManager] 'timerText' is not assigned — timer won't display.", this);
+        if (healthIcons == null || healthIcons.Length == 0)
+            Debug.LogWarning("[UIManager] 'healthIcons' array is empty — health won't display.", this);
+    }
+}
