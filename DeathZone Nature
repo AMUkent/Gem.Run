@@ -1,0 +1,18 @@
+using UnityEngine;
+
+/// <summary>
+/// An invisible kill-plane placed far below the level.
+/// Attach to a large flat trigger collider beneath the play area.
+/// Tag it "Respawn" or leave it untagged — the tag doesn't matter,
+/// only the player entering it triggers the loss.
+/// </summary>
+public class DeathZone : MonoBehaviour
+{
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!other.CompareTag("Player")) return;
+
+        // Let GameManager handle the game-over logic
+        GameManager.Instance.OnPlayerDamaged(999);   // instant kill
+    }
+}
